@@ -172,6 +172,33 @@ validacao: a api volta a healthy o /health da status ok e o contador continua co
 ## E05 - Git (3 valores)
 Branch, hashes de commits, merge e tag v1.0.0:
 
+```
+$ git add .
+$ git commit -m "feat: ambiente integrador funcional"
+$ git switch -c fix/health-info
+$ git add app.py tests/test_app.py
+$ git commit -m "fix: acrescentar identificacao no health"
+$ python -m pytest -q
+2 passed
+$ git switch main
+$ git merge fix/health-info
+Fast-forward
+$ git tag -a v1.0.0 -m "Release integrador 1.0.0"
+$ git log --oneline --graph --decorate -6
+* 47207f3 (HEAD -> main, tag: v1.0.0, fix/health-info) fix: acrescentar identificacao no health
+* 8b71473 feat: ambiente integrador funcional
+* 6f62560 (origin/main, origin/HEAD) Initial commit
+$ git push -u origin main
+$ git push origin v1.0.0
+```
+
+com isto vemos que
+branch: fix/health-info
+commits: 8b71473 (app funcional) e 47207f3 (campo team no health)
+merge: fix/health-info entrou na main em fast-forward
+tag: v1.0.0 anotada no commit 47207f3
+o .gitignore deixa de fora .venv .env e caches e os testes passam com o campo team
+
 ## E06 - Jenkins SUCCESS (4 valores)
 URL/numero do build, etapas e identificador da imagem construida:
 
