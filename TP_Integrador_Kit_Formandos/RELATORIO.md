@@ -215,6 +215,7 @@ Finished: SUCCESS
 
 build 2 deu success passou no checkout tests e docker biuld
 o build 1 falhou porque o jenkins nao chegava ao github
+prints: evidencias/jenkins-stage-view.png evidencias/build2.png evidencias/build2-console.png
 
 ## E07 - Jenkins FAILURE e recuperacao (2 valores)
 Build FAILURE, etapa que falhou e excerto relevante do log; build SUCCESS apos correcao:
@@ -285,6 +286,7 @@ Finished: SUCCESS
 
 o build 3 falhou nos tests porque meti "offline" e o docker build nem chegou a corer
 voltei a por o ok e o build 4 deu success
+prints: evidencias/jenkins-stage-view.png evidencias/build3.png evidencias/build3-console.png evidencias/build4.png evidencias/build4-console.png
 
 ## Verificacao final
 [x] Dockerfile [x] compose.yaml [x] app.py [x] tests/ [x] Jenkinsfile
