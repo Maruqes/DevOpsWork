@@ -202,9 +202,50 @@ o .gitignore deixa de fora .venv .env e caches e os testes passam com o campo te
 ## E06 - Jenkins SUCCESS (4 valores)
 URL/numero do build, etapas e identificador da imagem construida:
 
+```
+job: natixis-integrador (pipeline from SCM https://github.com/Maruqes/DevOpsWork.git main, script TP_Integrador_Kit_Formandos/Jenkinsfile)
+build: #2 http://127.0.0.1:8080/job/natixis-integrador/2/
+[Pipeline] { (Checkout)
++ .venv/bin/python -m pytest -q
+2 passed, 1 warning in 0.28s
++ docker build -t natixis-support:ci-2 .
+Successfully tagged natixis-support:ci-2
++ docker image inspect natixis-support:ci-2 --format {{.Id}}
+sha256:caafab374708b6d83a3020dc58627ff27760bc2f7bed532d7a7e979753f4b4c0
+Finished: SUCCESS
+```
+
+com isto vemos que
+build: #2 com SUCCESS
+etapas: Checkout Tests e Docker Build todas ok no agente ci-python-docker
+imagem: natixis-support:ci-2 com id sha256:caafab374708b6d83a3020dc58627ff27760bc2f7bed532d7a7e979753f4b4c0
+o build #1 falhou so porque o jenkins nao chegava ao github e depois de resolver a rede o #2 passou
+
 ## E07 - Jenkins FAILURE e recuperacao (2 valores)
 Build FAILURE, etapa que falhou e excerto relevante do log; build SUCCESS apos correcao:
 
+```
+commit ca15830 test: falha controlada status offline
+build: #3 http://127.0.0.1:8080/job/natixis-integrador/3/
+>       assert response.json()["status"] == "offline"
+E       AssertionError: assert 'ok' == 'offline'
+FAILED tests/test_app.py::test_health - AssertionError: assert 'ok' == 'offline'
+1 failed, 1 passed, 1 warning in 0.29s
+Stage "Docker Build" skipped due to earlier failure(s)
+Finished: FAILURE
+
+commit 3a4c894 test: repor assercao status ok
+build: #4 http://127.0.0.1:8080/job/natixis-integrador/4/
+2 passed, 1 warning in 0.28s
+sha256:caafab374708b6d83a3020dc58627ff27760bc2f7bed532d7a7e979753f4b4c0
+Finished: SUCCESS
+```
+
+com isto vemos que
+failure: build #3 falhou na etapa Tests porque o teste esperava offline e a api devolve ok
+docker build: nao correu foi skipped por causa da falha
+recuperacao: build #4 com a assercao reposta deu SUCCESS
+
 ## Verificacao final
-[ ] Dockerfile [ ] compose.yaml [ ] app.py [ ] tests/ [ ] Jenkinsfile
-[ ] Historico Git [ ] Tag v1.0.0 [ ] Evidencias E01-E07
+[x] Dockerfile [x] compose.yaml [x] app.py [x] tests/ [x] Jenkinsfile
+[x] Historico Git [x] Tag v1.0.0 [x] Evidencias E01-E07
