@@ -7,13 +7,13 @@ URL do repositorio Git: https://github.com/Maruqes/DevOpsWork
 Comandos e versoes observadas:
 
 ```
-$ docker --version
+docker --version
 Docker version 29.10.0, build fdd4b8e
-$ docker compose version
+docker compose version
 Docker Compose version 5.8.0
-$ git --version
+git --version
 git version 2.56.1
-$ docker info
+docker info
 Client: Docker Engine - Community
  Version:    29.10.0
  Context:    default
@@ -84,18 +84,18 @@ a api esta no app.py os testes estao em tests/test_app.py o compose esta no comp
 Tag da imagem; docker ps; HTTP /health; utilizador efetivo do container:
 
 ```
-$ docker build -t natixis-support:1.0 .
-$ docker run -d --name tp-api -p 127.0.0.1:18080:8000 natixis-support:1.0
-$ docker ps
+docker build -t natixis-support:1.0 .
+docker run -d --name tp-api -p 127.0.0.1:18080:8000 natixis-support:1.0
+docker ps
 CONTAINER ID   IMAGE                 STATUS         PORTS                       NAMES
 37b6d6136593   natixis-support:1.0   Up 3 seconds   127.0.0.1:18080->8000/tcp   tp-api
-$ curl http://127.0.0.1:18080/health
+curl http://127.0.0.1:18080/health
 {"status":"ok","service":"support-api","version":"1.0"}   (HTTP 200)
-$ docker logs --tail 15 tp-api
+docker logs --tail 15 tp-api
 INFO:     172.17.0.1:57436 - "GET /health HTTP/1.1" 200 OK
-$ docker exec tp-api id
+docker exec tp-api id
 uid=1000(appuser) gid=1000(appuser) groups=1000(appuser)
-$ docker rm -f tp-api
+docker rm -f tp-api
 ```
 
 com isto vemos que
@@ -109,24 +109,24 @@ o health deu 200 com status ok e o container nao corre como root
 Resultado de docker compose config; health; teste checker -> api; contador antes/depois da recriacao:
 
 ```
-$ docker compose config --quiet
+docker compose config --quiet
 (sem erros)
-$ docker compose up -d --build
-$ docker compose ps
+docker compose up -d --build
+docker compose ps
 NAME                       IMAGE                   STATUS                    PORTS
 natixis-integrador-api-1   natixis-support:local   Up 10 seconds (healthy)   127.0.0.1:18080->8000/tcp
-$ docker compose --profile diagnostico run --rm checker -fsS http://api:8000/health
+docker compose --profile diagnostico run --rm checker -fsS http://api:8000/health
 {"status":"ok","service":"support-api-integrador","version":"1.0"}
-$ curl http://127.0.0.1:18080/visits
+curl http://127.0.0.1:18080/visits
 {"visits":0}
-$ curl -X POST http://127.0.0.1:18080/visits
+curl -X POST http://127.0.0.1:18080/visits
 {"visits":1}
-$ curl http://127.0.0.1:18080/visits
+curl http://127.0.0.1:18080/visits
 {"visits":1}
-$ docker compose up -d --force-recreate
-$ docker compose ps
+docker compose up -d --force-recreate
+docker compose ps
 natixis-integrador-api-1   natixis-support:local   Up 10 seconds (healthy)   127.0.0.1:18080->8000/tcp
-$ curl http://127.0.0.1:18080/visits
+curl http://127.0.0.1:18080/visits
 {"visits":1}
 ```
 
@@ -141,24 +141,29 @@ o contador nao se perdeu porque fica guardado no volume app-data que nao e apaga
 Sintoma, comandos de investigacao, causa-raiz, alteracao realizada, prova da recuperacao e contador preservado:
 
 ```
-$ docker compose -f compose.yaml -f incidente.yaml up -d --force-recreate
-$ docker compose -f compose.yaml -f incidente.yaml ps
+curl http://127.0.0.1:18080/visits
+{"visits":3}
+docker compose -f compose.yaml -f incidente.yaml up -d --force-recreate
+docker compose -f compose.yaml -f incidente.yaml ps
 natixis-integrador-api-1   Up 43 seconds (unhealthy)   127.0.0.1:18080->8000/tcp
-$ docker compose -f compose.yaml -f incidente.yaml logs --tail 30 api
+docker compose -f compose.yaml -f incidente.yaml logs --tail 30 api
 api-1  | INFO:     Uvicorn running on http://0.0.0.0:8001 (Press CTRL+C to quit)
-$ docker compose -f compose.yaml -f incidente.yaml config
+docker compose -f compose.yaml -f incidente.yaml config
     aparece o file compose contruido
-$ curl http://127.0.0.1:18080/health
+    command: [python, -m, uvicorn, app:app, --host, 0.0.0.0, --port, "8001"]
+    healthcheck: urllib.request.urlopen('http://127.0.0.1:8000/health')
+    ports: target: 8000 published: "18080"
+curl http://127.0.0.1:18080/health
 curl: (56) Recv failure: Connection reset by peer
-$ docker compose -f compose.yaml -f incidente.yaml exec api python -c "print(open('/proc/net/tcp').read())"
+docker compose -f compose.yaml -f incidente.yaml exec api python -c "print(open('/proc/net/tcp').read())"
 00000000:1F41 ... 0A      (1F41 = porta 8001 em LISTEN)
 
-$ docker compose up -d --force-recreate api
-$ docker compose ps
+docker compose up -d --force-recreate api
+docker compose ps
 natixis-integrador-api-1   Up 10 seconds (healthy)   127.0.0.1:18080->8000/tcp
-$ curl http://127.0.0.1:18080/health
+curl http://127.0.0.1:18080/health
 {"status":"ok","service":"support-api-integrador","version":"1.0"}
-$ curl http://127.0.0.1:18080/visits
+curl http://127.0.0.1:18080/visits
 {"visits":3}
 ```
 
@@ -167,84 +172,119 @@ sintoma: a api fica unhealthy e o curl ao /health no 18080 da connection reset
 diagnostico: compose ps logs config e ver as portas em escuta dentro do container
 causa: o incidente.yaml muda o command para --port 8001 mas o mapeamento e o healthcheck usam a 8000
 correcao: voltar a configuracao base sem o incidente.yaml mantendo volume :D
-validacao: a api volta a healthy o /health da status ok e o contador continua com o valor do violume
+validacao: a api volta a healthy o /health da status ok e o contador era 3 antes do incidente e continua 3 depois porque ficou no violume
 
 ## E05 - Git (3 valores)
 Branch, hashes de commits, merge e tag v1.0.0:
 
 ```
-$ git add .
-$ git commit -m "feat: ambiente integrador funcional"
-$ git switch -c fix/health-info
-$ git add app.py tests/test_app.py
-$ git commit -m "fix: acrescentar identificacao no health"
-$ python -m pytest -q
-2 passed
-$ git switch main
-$ git merge fix/health-info
+git add .
+git commit -m "feat: ambiente integrador funcional"
+git switch -c fix/health-info
+git add app.py tests/test_app.py
+git commit -m "fix: acrescentar identificacao no health"
+git switch main
+git merge fix/health-info
 Fast-forward
-$ git tag -a v1.0.0 -m "Release integrador 1.0.0"
-$ git log --oneline --graph --decorate -6
+git tag -a v1.0.0 -m "Release integrador 1.0.0"
+git log --oneline --graph --decorate -6
 * 47207f3 (HEAD -> main, tag: v1.0.0, fix/health-info) fix: acrescentar identificacao no health
 * 8b71473 feat: ambiente integrador funcional
 * 6f62560 (origin/main, origin/HEAD) Initial commit
-$ git push -u origin main
-$ git push origin v1.0.0
+git push -u origin main
+git push origin v1.0.0
 ```
 
-com isto vemos que
-branch: fix/health-info
-commits: 8b71473 (app funcional) e 47207f3 (campo team no health)
-merge: fix/health-info entrou na main em fast-forward
-tag: v1.0.0 anotada no commit 47207f3
-o .gitignore deixa de fora .venv .env e caches e os testes passam com o campo team
+branch fix/health-info com o campo team no health os tetses passaram
+commits 8b71473 e 47207f3 o merge foi fast forward e a tag v1.0.0 ficou no 47207f3
+o .gitignore deixa de fora o .venv o .env e as caches por isso nao foram pro repo
 
 ## E06 - Jenkins SUCCESS (4 valores)
 URL/numero do build, etapas e identificador da imagem construida:
 
 ```
-job: natixis-integrador (pipeline from SCM https://github.com/Maruqes/DevOpsWork.git main, script TP_Integrador_Kit_Formandos/Jenkinsfile)
-build: #2 http://127.0.0.1:8080/job/natixis-integrador/2/
+http://127.0.0.1:8080/job/natixis-integrador/2/
 [Pipeline] { (Checkout)
-+ .venv/bin/python -m pytest -q
+.venv/bin/python -m pytest -q
 2 passed, 1 warning in 0.28s
-+ docker build -t natixis-support:ci-2 .
-Successfully tagged natixis-support:ci-2
-+ docker image inspect natixis-support:ci-2 --format {{.Id}}
+docker build -t natixis-support:ci-2 .
+docker image inspect natixis-support:ci-2 --format {{.Id}}
 sha256:caafab374708b6d83a3020dc58627ff27760bc2f7bed532d7a7e979753f4b4c0
 Finished: SUCCESS
 ```
 
-com isto vemos que
-build: #2 com SUCCESS
-etapas: Checkout Tests e Docker Build todas ok no agente ci-python-docker
-imagem: natixis-support:ci-2 com id sha256:caafab374708b6d83a3020dc58627ff27760bc2f7bed532d7a7e979753f4b4c0
-o build #1 falhou so porque o jenkins nao chegava ao github e depois de resolver a rede o #2 passou
+build 2 deu success passou no checkout tests e docker biuld
+o build 1 falhou porque o jenkins nao chegava ao github
 
 ## E07 - Jenkins FAILURE e recuperacao (2 valores)
 Build FAILURE, etapa que falhou e excerto relevante do log; build SUCCESS apos correcao:
 
 ```
 commit ca15830 test: falha controlada status offline
-build: #3 http://127.0.0.1:8080/job/natixis-integrador/3/
+em http://127.0.0.1:8080/job/natixis-integrador/3/
+
++ .venv/bin/python -m pytest -q
+
+F.                                                                       [100%]
+
+=================================== FAILURES ===================================
+
+_________________________________ test_health __________________________________
+
+    def test_health():
+
+        with TestClient(service.app) as client:
+
+            response = client.get("/health")
+
+        assert response.status_code == 200
+
 >       assert response.json()["status"] == "offline"
+
 E       AssertionError: assert 'ok' == 'offline'
+
+E         
+
+E         - offline
+
+E         + ok
+
+tests/test_app.py:9: AssertionError
+
+=============================== warnings summary ===============================
+
+.venv/lib/python3.13/site-packages/fastapi/testclient.py:1
+
+  /home/jenkins/agent/workspace/natixis-integrador/TP_Integrador_Kit_Formandos/.venv/lib/python3.13/site-packages/fastapi/testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+
+=========================== short test summary info ============================
+
 FAILED tests/test_app.py::test_health - AssertionError: assert 'ok' == 'offline'
+
+  
+
+  - offline
+
+  + ok
+
 1 failed, 1 passed, 1 warning in 0.29s
+
+script returned exit code 1
 Stage "Docker Build" skipped due to earlier failure(s)
 Finished: FAILURE
 
 commit 3a4c894 test: repor assercao status ok
-build: #4 http://127.0.0.1:8080/job/natixis-integrador/4/
+http://127.0.0.1:8080/job/natixis-integrador/4/
 2 passed, 1 warning in 0.28s
-sha256:caafab374708b6d83a3020dc58627ff27760bc2f7bed532d7a7e979753f4b4c0
 Finished: SUCCESS
 ```
 
-com isto vemos que
-failure: build #3 falhou na etapa Tests porque o teste esperava offline e a api devolve ok
-docker build: nao correu foi skipped por causa da falha
-recuperacao: build #4 com a assercao reposta deu SUCCESS
+o build 3 falhou nos tests porque meti "offline" e o docker build nem chegou a corer
+voltei a por o ok e o build 4 deu success
 
 ## Verificacao final
 [x] Dockerfile [x] compose.yaml [x] app.py [x] tests/ [x] Jenkinsfile
