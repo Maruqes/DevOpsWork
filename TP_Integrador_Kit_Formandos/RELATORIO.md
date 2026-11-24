@@ -106,7 +106,7 @@ log: "GET /health HTTP/1.1" 200 OK
 o health deu 200 com status ok e o container nao corre como root
 
 ## E03 - Compose, DNS, healthcheck e volume (4 valores)
-Resultado de docker compose config; health; teste checker -> api; contador antes/depois da recriacao:
+resultado de docker compose config; health; teste checker -> api; contador antes/depois da recriacao:
 
 ```
 docker compose config --quiet
@@ -155,8 +155,6 @@ docker compose -f compose.yaml -f incidente.yaml config
     ports: target: 8000 published: "18080"
 curl http://127.0.0.1:18080/health
 curl: (56) Recv failure: Connection reset by peer
-docker compose -f compose.yaml -f incidente.yaml exec api python -c "print(open('/proc/net/tcp').read())"
-00000000:1F41 ... 0A      (1F41 = porta 8001 em LISTEN)
 
 docker compose up -d --force-recreate api
 docker compose ps
@@ -218,7 +216,7 @@ o build 1 falhou porque o jenkins nao chegava ao github
 prints: evidencias/jenkins-stage-view.png evidencias/build2.png evidencias/build2-console.png
 
 ## E07 - Jenkins FAILURE e recuperacao (2 valores)
-Build FAILURE, etapa que falhou e excerto relevante do log; build SUCCESS apos correcao:
+build FAILURE, etapa que falhou e excerto relevante do log; build SUCCESS apos correcao:
 
 ```
 commit ca15830 test: falha controlada status offline
